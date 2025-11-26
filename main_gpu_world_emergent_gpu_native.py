@@ -22,8 +22,8 @@ class EmergentConfig:
     n_particles: int = 500_000
     n_steps: int = 500_000
     timestep_fs: float = 2.0
-    box_width_nm: float = 200.0
-    box_height_nm: float = 400.0
+    box_width_nm: float = 50.0
+    box_height_nm: float = 100.0
     gravity_m_s2: float = 9.80665
     reaction_radius_nm: float = 0.25
     activation_energy_ev: float = 0.6
