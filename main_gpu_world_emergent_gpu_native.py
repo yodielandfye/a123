@@ -159,38 +159,47 @@ def run_lammps_simulation_gpu_native(cfg: EmergentConfig | None = None) -> None:
     lmp.command(f"mass 1 {mass_scale}")
     lmp.command(f"mass 2 {mass_scale}")
 
+    # Define pair style BEFORE deleting overlaps
+    lmp.command("pair_style lj/cut/kk 2.5")
+    lmp.command("pair_coeff * * 1.0 1.0")
+
     half = cfg.n_particles // 2
     lmp.command("suffix off")
     lmp.command(f"create_atoms 1 random {half} 1337 sim")
     lmp.command(f"create_atoms 2 random {cfg.n_particles - half} 7331 sim")
     lmp.command("delete_atoms overlap 0.9 all all")
     lmp.command("reset_atoms id")
+    print(f"   Particles after overlap removal: {lmp.get_natoms():,}")
+
     print("🧘 Minimising energy (host) ...")
     lmp.command("minimize 1.0e-4 1.0e-6 1000 10000")
     print("   Minimisation complete.")
-    lmp.command("suffix kk")
 
-    lmp.command("pair_style lj/cut/kk 2.5")
-    lmp.command("pair_coeff * * 1.0 1.0")
+    lmp.command("region lost block INF INF -10.0 0.0 INF INF")
+    lmp.command("delete_atoms region lost")
+    lmp.command("reset_atoms id")
+    print(f"   Particles after floor cleanup: {lmp.get_natoms():,}")
+
+    lmp.command("suffix kk")
     lmp.command("bond_style harmonic")
     lmp.command("bond_coeff 1 150.0 1.2")
     lmp.command("special_bonds lj/coul 0.0 1.0 1.0")
+    lmp.command("fix floor all wall/lj93 ylo 0 1.0 1.0 2.5")
+    lmp.command("fix gravity all gravity 0.5 vector 0 -1 0")
+    lmp.command("fix integrate all nve")
+    lmp.command("fix thermostat all langevin 1.0 1.0 100.0 424242")
 
     timestep = _lj_units_time_step(cfg.timestep_fs)
     lmp.command(f"timestep {timestep}")
     lmp.command("velocity all create 1.0 98765 dist gaussian")
-    gravity = cfg.gravity_m_s2 / 9.80665
-    lmp.command("fix integrator all nve")
-    lmp.command(f"fix gravity all gravity {gravity} vector 0 -1 0")
-    lmp.command("fix thermostat all langevin 1.0 1.0 100.0 424242")
-
     lmp.command("log gpu_native.log")
     lmp.command("dump traj all custom 20000 gpu_native.xyz id type x y z")
 
     start = time.time()
     lmp.command(f"run {cfg.n_steps}")
     elapsed = time.time() - start
-    print(f"✅ Emergent GPU run complete  |  Wall time: {elapsed/3600:.2f} h")
+    print("✅ Emergent GPU run complete")
+    print(f"   Wall time : {elapsed/3600:.2f} hours")
     print("   Log       : gpu_native.log")
     print("   Trajectory: gpu_native.xyz")
 
