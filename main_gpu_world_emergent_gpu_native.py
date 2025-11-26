@@ -143,8 +143,8 @@ def run_lammps_simulation_gpu_native(cfg: EmergentConfig | None = None) -> None:
     lmp.command("dimension 3")
     lmp.command("atom_style molecular")
     lmp.command("boundary p s p")
-    lmp.command("neighbor 1.0 bin")
-    lmp.command("neigh_modify delay 0 every 2 check yes")
+    lmp.command("neighbor 3.0 bin")
+    lmp.command("neigh_modify delay 0 every 1 check yes")
 
     sigma_nm = 0.34
     width = cfg.box_width_nm / sigma_nm
@@ -159,7 +159,6 @@ def run_lammps_simulation_gpu_native(cfg: EmergentConfig | None = None) -> None:
     lmp.command(f"mass 1 {mass_scale}")
     lmp.command(f"mass 2 {mass_scale}")
 
-    # Define pair style BEFORE deleting overlaps
     lmp.command("pair_style lj/cut/kk 2.5")
     lmp.command("pair_coeff * * 1.0 1.0")
 
@@ -184,7 +183,7 @@ def run_lammps_simulation_gpu_native(cfg: EmergentConfig | None = None) -> None:
     lmp.command("bond_style harmonic")
     lmp.command("bond_coeff 1 150.0 1.2")
     lmp.command("special_bonds lj/coul 0.0 1.0 1.0")
-    lmp.command("fix floor all wall/lj93 ylo 0 1.0 1.0 2.5")
+    lmp.command("fix floor all wall/lj93 ylo -1.0 1.0 1.0 2.5")  # shift floor down
     lmp.command("fix gravity all gravity 0.5 vector 0 -1 0")
     lmp.command("fix integrate all nve")
     lmp.command("fix thermostat all langevin 1.0 1.0 100.0 424242")
